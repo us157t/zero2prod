@@ -6,19 +6,19 @@ use actix_web::{
 	Responder,
 	HttpResponse,
 };
-
+use std::net::TcpListener;
 use actix_web::dev::Server;
 
 async fn greet() -> impl Responder {
 	HttpResponse::Ok()
 }
 
-pub fn run() -> Result<Server, std::io::Error> {
+pub fn run(lis: TcpListener) -> Result<Server, std::io::Error> {
 	let s = HttpServer::new(|| {
 		App::new()
 			.route("/greet", web::get().to(greet))
 	})
-	.bind("127.0.0.1:3000")?
+	.listen(lis)?
 	.run();
 
 	Ok(s)

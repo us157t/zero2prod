@@ -1,11 +1,12 @@
+use std::net::TcpListener;
 use zero2prod::run;
 #[tokio::test]
 async fn hc_works() {
-	spawn_app();
-
+	let add = spawn_app();
+	dbg!(&add);
 	let cli = reqwest::Client::new();
 	let res = cli
-		.get("http://127.0.0.1:3000/greet")
+		.get(format!("{}/greet", add))
 		.send()
 		.await
 		.expect("Failed to exe req");
@@ -15,7 +16,12 @@ async fn hc_works() {
 		
 }
 
-fn spawn_app()  {
-	let s = run().expect("spawn app err");
+fn spawn_app()  -> String{
+	let lis = TcpListener::bind("127.0.0.1:0")
+		.expect("Failed to bind ");
+	let port = lis.local_addr().unwrap().port();
+	dbg!(&port);
+	let s = run(lis).expect("spawn app err");
 	let _ = tokio::spawn(s);
+	format!("http://127.0.0.1:{}", port)
 }
