@@ -1,4 +1,4 @@
-
-pub fn yy()  {
-	println!("WOWO");
+use actix_web::HttpResponse;
+pub async fn hc() -> HttpResponse {
+    HttpResponse::Ok().finish()
 }

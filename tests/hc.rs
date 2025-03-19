@@ -1,76 +1,123 @@
+use sqlx::{Executor ,Connection, PgConnection, PgPool};
 use std::net::TcpListener;
-use zero2prod::run;
+use uuid::Uuid;
+use zero2prod::conf::get_configuration;
+use zero2prod::conf::DatabaseSettings;
+use zero2prod::startup::run;
+
+#[derive(Debug)]
+pub struct TestApp {
+    pub address: String,
+    pub db_pool: PgPool,
+}
 
 #[tokio::test]
 async fn hc_works() {
-	let addr = spawn_app();
-	println!("{}", &addr);
-	let cli = reqwest::Client::new();
-	let res = cli
-		.get(format!("{}/hc", addr))
-		.send()
-		.await
-		.expect("Failed to exe req!!!!!!!!!!!!!!!!!");
+    let app = spawn_app().await;
+    let cli = reqwest::Client::new();
+    let res = cli
+        .get(format!("{}/hc", &app.address))
+        .send()
+        .await
+        .expect("Failed to exe req!!!!!!!!!!!!!!!!!");
 
-	assert!(res.status().is_success());
-	assert_eq!(Some(0), res.content_length());
+    assert!(res.status().is_success());
+    assert_eq!(Some(0), res.content_length());
 }
 
-fn spawn_app()  -> String {
-	let lis = TcpListener::bind(
-		"127.0.0.1:0"
-	).expect("Failed to lis!!!");
-	let port = lis.local_addr().unwrap().port();
-	let s = run(lis).expect("Failed to run");;
-	let _ = tokio::spawn(s);
-	format!("http://127.0.0.1:{}", port)
+async fn spawn_app() -> TestApp {
+    let lis = TcpListener::bind("127.0.0.1:0").expect("Failed to lis!!!");
+    let port = lis.local_addr().unwrap().port();
+
+    let mut conf = get_configuration().expect("Failed to get conf");
+    conf.database.database_name = Uuid::new_v4().to_string();
+    let conn = conf_db(&conf.database).await;
+    let s = run(lis, conn.clone()).expect("Failed to run");
+    let _ = tokio::spawn(s);
+
+    TestApp {
+        address: format!("http://127.0.0.1:{}", port),
+        db_pool: conn,
+    }
 }
 
 #[tokio::test]
 async fn subs_200() {
-	let app = spawn_app();
-	let cli = reqwest::Client::new();
-	let body = "name=le%20guin&email=ursula_le_guin%40gmail.com";
-	let res = cli
-		.post(&format!("{}/subs", &app))
-		.header(
-			"Content-Type",
-			"application/x-www-form-urlencoded"
-		).body(body)
-		.send()
-		.await
-		.expect("Failed to execute request.");
+    let app = spawn_app().await;
+    let cli = reqwest::Client::new();
+    let body = "name=le%20guin&email=ursula_le_guin%40gmail.com";
+    let res = cli
+        .post(&format!("{}/subs", &app.address))
+        .header("Content-Type", "application/x-www-form-urlencoded")
+        .body(body)
+        .send()
+        .await
+        .expect("Failed to execute request.");
 
-	assert_eq!(200, res.status().as_u16());
+    assert_eq!(200, res.status().as_u16());
+
+    let saved = sqlx::query!("SELECT email, name from subscriptions",)
+        .fetch_one(&app.db_pool)
+        .await
+        .expect("Failed to fetch data");
+
+    assert_eq!(saved.email, "ursula_le_guin@gmail.com");
+    assert_eq!(saved.name, "le guin");
 }
 
 #[tokio::test]
 async fn subs_400() {
-	let app = spawn_app();
-	let cli = reqwest::Client::new();
-	let test_cases = vec![
-		("name=le%20guin", "missing the email"),
-		("email=ursula_le_guin%40gmail.com", "missing the name"),
-		("", "missing both name and email")
-	];
+    let app = spawn_app().await;
+    let cli = reqwest::Client::new();
+    let test_cases = vec![
+        ("name=le%20guin", "missing the email"),
+        ("email=ursula_le_guin%40gmail.com", "missing the name"),
+        ("", "missing both name and email"),
+    ];
 
-	for (invalid_body, error_message) in test_cases {
-		let res = cli
-			.post(&format!("{}/subs", &app))
-			.header(
-				"Content-Type",
-				"application/x-www-form-urlencoded"
-			).body(invalid_body)
-			.send()
-			.await
-			.expect("Failed to execute request.");
+    for (invalid_body, error_message) in test_cases {
+        let res = cli
+            .post(&format!("{}/subs", &app.address))
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .body(invalid_body)
+            .send()
+            .await
+            .expect("Failed to execute request.");
 
-		assert_eq!(400, res.status().as_u16(),
-		"The API did not fail with 400 Bad Request {}",
-		error_message
-		);
+        assert_eq!(
+            400,
+            res.status().as_u16(),
+            "The API did not fail with 400 Bad Request {}",
+            error_message
+        );
+    }
+}
 
-	}
+pub async fn conf_db(conf: &DatabaseSettings) -> PgPool {
+    let mut conn = PgConnection::connect(&conf.connection_string_without_db())
+        .await
+        .expect("Failed to conf_db");
 
+    conn.execute(
+        format!(
+            r#"
+				CREATE DATABASE "{}";
+			"#,
+            conf.database_name
+        )
+        .as_str(),
+    )
+    .await
+    .expect("Failed to create database");
 
+    let conn = PgPool::connect(&conf.conn_string())
+        .await
+        .expect("Failed to conn to postgres");
+
+    sqlx::migrate!("./migrations")
+        .run(&conn)
+        .await
+        .expect("Failed to migrate the db");
+
+    conn
 }
