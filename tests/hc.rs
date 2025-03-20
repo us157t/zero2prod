@@ -1,5 +1,5 @@
-use secrecy::ExposeSecret;
 use once_cell::sync::Lazy;
+use secrecy::ExposeSecret;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use std::net::TcpListener;
 use uuid::Uuid;
@@ -110,9 +110,7 @@ async fn subs_400() {
 }
 
 pub async fn conf_db(conf: &DatabaseSettings) -> PgPool {
-    let mut conn = PgConnection::connect(&conf.connection_string_without_db().
-	expose_secret()
-	)
+    let mut conn = PgConnection::connect(&conf.connection_string_without_db().expose_secret())
         .await
         .expect("Failed to conf_db");
 
