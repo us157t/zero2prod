@@ -1,5 +1,6 @@
 use once_cell::sync::Lazy;
 use secrecy::ExposeSecret;
+use sqlx::postgres::PgSslMode;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use std::net::TcpListener;
 use uuid::Uuid;
@@ -110,7 +111,7 @@ async fn subs_400() {
 }
 
 pub async fn conf_db(conf: &DatabaseSettings) -> PgPool {
-    let mut conn = PgConnection::connect(&conf.connection_string_without_db().expose_secret())
+    let mut conn = PgConnection::connect_with(&conf.without_db())
         .await
         .expect("Failed to conf_db");
 
@@ -126,7 +127,7 @@ pub async fn conf_db(conf: &DatabaseSettings) -> PgPool {
     .await
     .expect("Failed to create database");
 
-    let conn = PgPool::connect(&conf.conn_string().expose_secret())
+    let conn = PgPool::connect_with(conf.with_db())
         .await
         .expect("Failed to conn to postgres");
 
@@ -136,4 +137,34 @@ pub async fn conf_db(conf: &DatabaseSettings) -> PgPool {
         .expect("Failed to migrate the db");
 
     conn
+}
+
+#[tokio::test]
+async fn subscribe_returns_a_200_when_fields_are_present_but_empty() {
+    // Arrange
+    let app = spawn_app().await;
+    let client = reqwest::Client::new();
+    let test_cases = vec![
+        //("name=xx&email=ursula_le_guin%40gmail.com", "empty name11111"),
+        //("name=Ursula&email=xx", "empty email222222"),
+        ("name=Ursula&email=email.com", "invalid email66666666666"),
+    ];
+
+    for (body, description) in test_cases {
+        // Act
+        let response = client
+            .post(&format!("{}/subs", &app.address))
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .body(body)
+            .send()
+            .await
+            .expect("Failed to execute request.");
+        // Assert
+        assert_eq!(
+            200,
+            response.status().as_u16(),
+            "The API did not return a 200 OK when the payload was {}.",
+            description
+        );
+    }
 }
