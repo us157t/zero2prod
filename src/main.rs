@@ -1,6 +1,6 @@
 use zero2prod::run;
 use actix_web::{web, App,HttpResponse, HttpRequest, HttpServer, Responder};
-
+use std::net::TcpListener;
 async fn hc() -> impl Responder {
 	HttpResponse::Ok()
 }
@@ -12,5 +12,8 @@ async fn greet(req: HttpRequest) -> impl Responder {
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
-	run()?.await
+	let s = TcpListener::bind("127.0.0.1:0").expect("tcp listener main err");
+	dbg!(&s);
+	run(s)?.await
+
 }
