@@ -1516,6 +1516,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "mutually_exclusive_features"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e94e1e6445d314f972ff7395df2de295fe51b71821694f0b0e1e79c4f12c8577"
+
+[[package]]
 name = "native-tls"
 version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1711,6 +1717,26 @@ name = "percent-encoding"
 version = "2.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e3148f5046208a5d56bcfc03053e3ca6334e51da8dfb19b6cdc8b306fae3283e"
+
+[[package]]
+name = "pin-project"
+version = "1.1.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "677f1add503faace112b9f1373e43e9e054bfdd22ff1a63c1bc485eaec6a6a8a"
+dependencies = [
+ "pin-project-internal",
+]
+
+[[package]]
+name = "pin-project-internal"
+version = "1.1.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6e918e4ff8c4549eb882f14b3a4bc8c8bc93de829416eacf579f1207a8fbf861"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.100",
+]
 
 [[package]]
 name = "pin-project-lite"
@@ -2111,6 +2137,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "secrecy"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9bd1c54ea06cfd2f6b63219704de0b9b4f72dcc2b8fdef820be6cd799780e91e"
+dependencies = [
+ "serde 1.0.219",
+ "zeroize",
+]
+
+[[package]]
 name = "security-framework"
 version = "2.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2352,7 +2388,7 @@ dependencies = [
  "thiserror",
  "tokio-stream",
  "url",
- "uuid",
+ "uuid 0.8.2",
  "webpki",
  "webpki-roots",
  "whoami",
@@ -2713,6 +2749,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "tracing-actix-web"
+version = "0.7.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "332bbdf3bd208d1fe6446f8ffb4e8c2ae66e25da0fb38e0b69545e640ecee6a6"
+dependencies = [
+ "actix-web",
+ "mutually_exclusive_features",
+ "pin-project",
+ "tracing",
+ "uuid 1.16.0",
+]
+
+[[package]]
 name = "tracing-attributes"
 version = "0.1.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2896,6 +2945,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bc5cf98d8186244414c848017f0e2676b3fcb46807f6668a97dfe67359a3c4b7"
 dependencies = [
  "getrandom 0.2.15",
+]
+
+[[package]]
+name = "uuid"
+version = "1.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "458f7a779bf54acc9f347480ac654f68407d3aab21269a6e3c9f922acd9e2da9"
+dependencies = [
+ "getrandom 0.3.2",
 ]
 
 [[package]]
@@ -3366,16 +3424,19 @@ dependencies = [
  "chrono",
  "config",
  "env_logger",
+ "once_cell",
  "reqwest",
+ "secrecy",
  "serde 1.0.219",
  "sqlx",
  "syn 1.0.109",
  "tokio",
  "tracing",
+ "tracing-actix-web",
  "tracing-bunyan-formatter",
  "tracing-log 0.2.0",
  "tracing-subscriber",
- "uuid",
+ "uuid 0.8.2",
 ]
 
 [[package]]

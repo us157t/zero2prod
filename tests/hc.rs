@@ -2,6 +2,7 @@ use sqlx::{Connection, PgConnection};
 use zero2prod::configuration::fmt;
 use zero2prod::configuration::get_configuration;
 use zero2prod::startup::spawn_app;
+use zero2prod::telemetry::init_subscriber;
 
 #[tokio::test]
 async fn hc() {

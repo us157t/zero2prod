@@ -8,6 +8,14 @@ pub struct FormData {
     name: String,
 }
 
+#[tracing::instrument(
+name = "Adding a new subscriber",
+skip(_form, conn),
+fields(
+Subscriber_email = %_form.email,
+Subscriber_name= %_form.name
+)
+)]
 pub async fn subs(_form: web::Form<FormData>, conn: web::Data<PgPool>) -> impl Responder {
     sqlx::query!(
         r#"
