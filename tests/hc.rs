@@ -7,7 +7,11 @@ use zero2prod::startup::spawn_app;
 async fn hc() {
     let addr = spawn_app().await;
     let cli = reqwest::Client::new();
-    let res = cli.get(format!("{}/hc", addr.addr)).send().await.expect("failed 222");
+    let res = cli
+        .get(format!("{}/hc", addr.addr))
+        .send()
+        .await
+        .expect("failed 222");
 
     assert!(res.status().is_success());
     assert_eq!(Some(0), res.content_length());
